@@ -121,6 +121,7 @@ describe('buildFromJson()', () => {
 						renderTokenBudget?: number;
 					};
 					observationalMemory?: {
+						windowShares?: { maxContextWindowTokens?: number };
 						observerThresholdTokens?: number;
 						reflectorThresholdTokens?: number;
 						observationLogTailLimit?: number;
@@ -1281,6 +1282,43 @@ describe('buildFromJson()', () => {
 		});
 		expect(getMemoryConfig(agent)?.observationalMemory?.observe).toBeUndefined();
 		expect(getMemoryConfig(agent)?.observationalMemory?.reflect).toBeUndefined();
+	});
+
+	it.each([{}, { ignored: 123 }])(
+		'keeps automatic memory defaults for an empty window config %j',
+		async (windowShares) => {
+			const config = AgentJsonConfigSchema.parse({
+				...makeConfig(),
+				memory: { enabled: true, storage: 'n8n', observationalMemory: { windowShares } },
+			});
+			const agent = await buildFromJson(
+				config,
+				{},
+				{
+					toolExecutor: makeMockToolExecutor(),
+					credentialProvider: makeMockCredentialProvider(),
+					memoryFactory: makeMockMemoryFactory(),
+				},
+			);
+			expect(getMemoryConfig(agent)?.observationalMemory).not.toHaveProperty('windowShares');
+		},
+	);
+
+	it('passes the saved context windows to observational memory', async () => {
+		const windowShares = { maxContextWindowTokens: 64_000 };
+		const config = makeConfig({
+			memory: { enabled: true, storage: 'n8n', observationalMemory: { windowShares } },
+		});
+		const agent = await buildFromJson(
+			config,
+			{},
+			{
+				toolExecutor: makeMockToolExecutor(),
+				credentialProvider: makeMockCredentialProvider(),
+				memoryFactory: makeMockMemoryFactory(),
+			},
+		);
+		expect(getMemoryConfig(agent)?.observationalMemory?.windowShares).toEqual(windowShares);
 	});
 
 	it('uses synchronous title generation so the first message can sync the title', async () => {

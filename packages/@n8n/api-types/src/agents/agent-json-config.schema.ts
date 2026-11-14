@@ -43,7 +43,12 @@ const MemoryWorkerModelSchema = z.object({
 	credential: CredentialIdSchema,
 });
 
+export const ObservationWindowSharesSchema = z.object({
+	maxContextWindowTokens: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional(),
+});
+
 const ObservationalMemoryConfigSchema = z.object({
+	windowShares: ObservationWindowSharesSchema.optional(),
 	enabled: z.boolean().optional(),
 	observerModel: MemoryWorkerModelSchema.optional(),
 	reflectorModel: MemoryWorkerModelSchema.optional(),

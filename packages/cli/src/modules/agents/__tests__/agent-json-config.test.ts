@@ -101,6 +101,44 @@ describe('AgentJsonConfigSchema — memory.observationalMemory', () => {
 		expect(parsed.success).toBe(false);
 	});
 
+	it('preserves context windows when parsing saved agent configuration', () => {
+		const windowShares = { maxContextWindowTokens: 64_000 };
+		const parsed = AgentJsonConfigSchema.parse({
+			...baseConfig,
+			memory: { ...memoryBase, observationalMemory: { windowShares } },
+		});
+		expect(parsed.memory?.observationalMemory?.windowShares).toEqual(windowShares);
+	});
+
+	it.each([
+		{ maxContextWindowTokens: -1 },
+		{ maxContextWindowTokens: 1.5 },
+		{ maxContextWindowTokens: Number.MAX_SAFE_INTEGER + 1 },
+		{ maxContextWindowTokens: Number.POSITIVE_INFINITY },
+		{ maxContextWindowTokens: '64000' },
+	])('rejects invalid context windows: %j', (windowShares) => {
+		expect(
+			AgentJsonConfigSchema.safeParse({
+				...baseConfig,
+				memory: { ...memoryBase, observationalMemory: { windowShares } },
+			}).success,
+		).toBe(false);
+	});
+
+	it('accepts a zero cap without persisting defaults for existing agents', () => {
+		const parsed = AgentJsonConfigSchema.parse({
+			...baseConfig,
+			memory: {
+				...memoryBase,
+				observationalMemory: { windowShares: { maxContextWindowTokens: 0 } },
+			},
+		});
+		expect(parsed.memory?.observationalMemory?.windowShares).toEqual({ maxContextWindowTokens: 0 });
+		expect(AgentJsonConfigSchema.parse({ ...baseConfig, memory: memoryBase }).memory).toEqual(
+			memoryBase,
+		);
+	});
+
 	it('accepts observationalMemory: { enabled: true } alone', () => {
 		const parsed = AgentJsonConfigSchema.safeParse({
 			...baseConfig,

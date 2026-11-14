@@ -604,6 +604,11 @@ async function applyMemoryFromConfig(
 		);
 
 		memory.observationalMemory({
+			...(observationalMemory?.windowShares?.maxContextWindowTokens !== undefined && {
+				windowShares: {
+					maxContextWindowTokens: observationalMemory.windowShares.maxContextWindowTokens,
+				},
+			}),
 			...(observationalMemory?.observerModel !== undefined && {
 				observe: createObservationLogObserveFn(
 					await resolveMemoryWorkerModelConfig(
